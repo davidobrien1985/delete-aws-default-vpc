@@ -2,11 +2,14 @@
 # Must be the first line
 from __future__ import print_function
 
+import concurrent.futures
 import sys
+import os
 import json
 import boto3
 
 VERBOSE = 1
+THREADPOOL_MAX_WORKERS = 20
 
 def get_regions(client):
   """ Build a region list """
@@ -145,7 +148,7 @@ def del_vpc(ec2, vpcid):
   #finally:
   #  return status
 
-def main(keyid, secret):
+def del_vpc_all(ec2, vpc):
   """
   Do the work - order of operation
 
@@ -156,28 +159,37 @@ def main(keyid, secret):
   5.) Delete security-groups
   6.) Delete the VPC 
   """
+  del_igw(ec2, vpc)
+  del_sub(ec2, vpc)
+  del_rtb(ec2, vpc)
+  del_acl(ec2, vpc)
+  del_sgp(ec2, vpc)
+  del_vpc(ec2, vpc)
 
+def main(keyid, secret):
   client = boto3.client('ec2')
   regions = get_regions(client)
   
-  for region in regions:
-    try:
-      client = boto3.client('ec2', region_name = region)
-      ec2 = boto3.resource('ec2', region_name = region)
-      vpcs = get_default_vpcs(client)
-    except boto3.exceptions.Boto3Error as e:
-      print(e)
-      exit(1)
-    else:
+  futures = []
+  with concurrent.futures.ThreadPoolExecutor(max_workers=int(os.getenv("MAX_WORKERS", THREADPOOL_MAX_WORKERS))) as executor:
+    for region in regions:
+      try:
+        client = boto3.client('ec2', region_name = region)
+        ec2 = boto3.resource('ec2', region_name = region)
+        vpcs = get_default_vpcs(client)
+      except boto3.exceptions.Boto3Error as e:
+        print(e)
+        exit(1)
+
       for vpc in vpcs:
         print("\n" + "\n" + "REGION:" + region + "\n" + "VPC Id:" + vpc)
-        del_igw(ec2, vpc)
-        del_sub(ec2, vpc)
-        del_rtb(ec2, vpc)
-        del_acl(ec2, vpc)
-        del_sgp(ec2, vpc)
-        del_vpc(ec2, vpc)
+        futures.append(executor.submit(
+            del_vpc_all,
+            ec2,
+            vpc,
+        ))
+  concurrent.futures.wait(futures)
+  print('Deleted all default VPCs')
 
 if __name__ == "__main__":
-
   main(keyid = 'XXXX', secret = 'XXXX')
