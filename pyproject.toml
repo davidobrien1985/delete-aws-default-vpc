@@ -1,0 +1,26 @@
+[project]
+name = "delete-aws-default-vpc"
+version = "0.1.0"
+description = "Tool to delete default VPCs across all AWS regions"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.36.19",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.6",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D212", "E501", "F403", "F405"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
